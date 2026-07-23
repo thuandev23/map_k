@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
-import 'features/location/presentation/screens/location_screen.dart';
+import 'features/map/presentation/screens/map_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +34,7 @@ class MapKApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF090D16),
         useMaterial3: true,
       ),
-      home: const LocationScreen(),
+      home: const MapScreen(),
     );
   }
 }

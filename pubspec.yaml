@@ -37,10 +37,13 @@ dependencies:
   flutter_riverpod: ^2.6.1
   dio: ^5.7.0
   sentry_flutter: ^8.13.0
+  maplibre_gl: ^0.26.2
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  mocktail: ^1.0.4
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

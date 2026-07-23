@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/di/providers.dart';
 import '../../../../core/usecase/usecase.dart';
@@ -36,40 +37,53 @@ final watchLocationStreamUseCaseProvider = Provider<WatchLocationStream>((ref) {
   return WatchLocationStream(ref.watch(locationRepositoryProvider));
 });
 
-// --- Location Controller State & AsyncNotifier ---
+// --- Location Controller StateNotifier ---
 
 class LocationController extends StateNotifier<AsyncValue<LocationEntity>> {
   final GetCurrentLocation _getCurrentLocation;
+  final WatchLocationStream _watchStream;
+  StreamSubscription? _sub;
 
-  LocationController(this._getCurrentLocation)
+  LocationController(this._getCurrentLocation, this._watchStream)
       : super(const AsyncValue.loading()) {
-    fetchCurrentLocation();
+    init();
   }
 
-  Future<void> fetchCurrentLocation() async {
+  Future<void> init() async {
     state = const AsyncValue.loading();
     final result = await _getCurrentLocation(const NoParams());
     result.fold(
-      onLeft: (failure) {
-        state = AsyncValue.error(failure.message, StackTrace.current);
-      },
-      onRight: (location) {
-        state = AsyncValue.data(location);
-      },
+      onLeft: (failure) => state = AsyncValue.error(failure.message, StackTrace.current),
+      onRight: (location) => state = AsyncValue.data(location),
     );
+
+    _sub = _watchStream(const NoParams()).listen((result) {
+      result.fold(
+        onLeft: (failure) {},
+        onRight: (location) => state = AsyncValue.data(location),
+      );
+    });
+  }
+
+  Future<void> refreshLocation() async {
+    final result = await _getCurrentLocation(const NoParams());
+    result.fold(
+      onLeft: (failure) => state = AsyncValue.error(failure.message, StackTrace.current),
+      onRight: (location) => state = AsyncValue.data(location),
+    );
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }
 
 final locationControllerProvider =
     StateNotifierProvider<LocationController, AsyncValue<LocationEntity>>((ref) {
-  return LocationController(ref.watch(getCurrentLocationUseCaseProvider));
-});
-
-final locationStreamProvider = StreamProvider<LocationEntity>((ref) async* {
-  final useCase = ref.watch(watchLocationStreamUseCaseProvider);
-  await for (final result in useCase(const NoParams())) {
-    if (result.isRight) {
-      yield result.rightOrNull!;
-    }
-  }
+  return LocationController(
+    ref.watch(getCurrentLocationUseCaseProvider),
+    ref.watch(watchLocationStreamUseCaseProvider),
+  );
 });
