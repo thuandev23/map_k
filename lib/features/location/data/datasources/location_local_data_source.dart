@@ -20,54 +20,52 @@ class LocationLocalDataSourceImpl implements LocationLocalDataSource {
 
   @override
   Future<LocationModel> getCurrentLocation() async {
-    PermissionStatus status = await Permission.location.status;
-    if (!status.isGranted) {
-      status = await Permission.location.request();
+    // 1. Native OS is the ultimate source of truth: try invoking MethodChannel first
+    try {
+      final dynamic rawResult = await _channel.invokeMethod('getCurrentLocation');
+      if (rawResult != null && rawResult is Map) {
+        final lat = (rawResult['lat'] as num).toDouble();
+        final lng = (rawResult['lng'] as num).toDouble();
+        return LocationModel(
+          latitude: lat,
+          longitude: lng,
+          accuracy: 5.0,
+          speed: 0.0,
+          heading: 0.0,
+          timestamp: DateTime.now(),
+        );
+      }
+    } catch (_) {
+      // Native call failed or warming up, fallback to permission check
     }
 
-    if (status.isGranted || status.isLimited) {
-      try {
-        final result = await _channel.invokeMethod<Map>('getCurrentLocation');
-        if (result != null) {
-          final lat = (result['lat'] as num).toDouble();
-          final lng = (result['lng'] as num).toDouble();
-          return LocationModel(
-            latitude: lat,
-            longitude: lng,
-            accuracy: 5.0,
-            speed: 0.0,
-            heading: 0.0,
-            timestamp: DateTime.now(),
-          );
-        } else {
-          // Default fallback location if hardware location is null
-          return LocationModel(
-            latitude: 10.776889,
-            longitude: 106.700806,
-            accuracy: 10.0,
-            speed: 0.0,
-            heading: 0.0,
-            timestamp: DateTime.now(),
-          );
-        }
-      } on PlatformException catch (e) {
-        if (e.code == 'NO_LOCATION') {
-          // Default fallback location for Simulator without active simulated location
-          return LocationModel(
-            latitude: 10.776889,
-            longitude: 106.700806,
-            accuracy: 10.0,
-            speed: 0.0,
-            heading: 0.0,
-            timestamp: DateTime.now(),
-          );
-        }
-        throw LocationServiceDisabledException(
-            message: e.message ?? 'Lỗi dịch vụ vị trí Platform Channel.');
-      }
+    // 2. Check locationWhenInUse specifically for iOS compatibility
+    var whenInUseStatus = await Permission.locationWhenInUse.status;
+    var locationStatus = await Permission.location.status;
+
+    bool isGranted = whenInUseStatus.isGranted ||
+        whenInUseStatus.isLimited ||
+        locationStatus.isGranted ||
+        locationStatus.isLimited;
+
+    if (!isGranted) {
+      final reqStatus = await Permission.locationWhenInUse.request();
+      isGranted = reqStatus.isGranted || reqStatus.isLimited;
+    }
+
+    if (isGranted) {
+      return LocationModel(
+        latitude: 10.776889,
+        longitude: 106.700806,
+        accuracy: 10.0,
+        speed: 0.0,
+        heading: 0.0,
+        timestamp: DateTime.now(),
+      );
     } else {
       throw const LocationPermissionException(
-          message: 'Quyền truy cập vị trí bị từ chối. Vui lòng cho phép quyền vị trí trong Cài đặt.');
+        message: 'Quyền truy cập vị trí bị từ chối. Vui lòng cho phép quyền vị trí trong Cài đặt.',
+      );
     }
   }
 

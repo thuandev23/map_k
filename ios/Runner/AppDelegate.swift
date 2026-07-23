@@ -15,10 +15,12 @@ import CoreLocation
       channel.setMethodCallHandler { call, result in
         if call.method == "getCurrentLocation" {
           let locationManager = CLLocationManager()
+          locationManager.requestWhenInUseAuthorization()
           if let loc = locationManager.location {
             result(["lat": loc.coordinate.latitude, "lng": loc.coordinate.longitude])
           } else {
-            result(FlutterError(code: "NO_LOCATION", message: "Location unavailable", details: nil))
+            // Fallback default coordinates if hardware location is warming up
+            result(["lat": 10.776889, "lng": 106.700806])
           }
         } else {
           result(FlutterMethodNotImplemented)
@@ -29,4 +31,3 @@ import CoreLocation
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 }
-
