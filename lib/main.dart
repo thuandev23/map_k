@@ -5,7 +5,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'features/map/presentation/screens/map_screen.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  SentryWidgetsFlutterBinding.ensureInitialized();
 
   await SentryFlutter.init(
     (options) {
