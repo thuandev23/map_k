@@ -1,5 +1,5 @@
-import '../../../../core/error/exceptions.dart';
 import '../../../../core/error/failures.dart';
+import '../../../../core/error/guard.dart';
 import '../../../../core/error/result.dart';
 import '../../domain/entities/location_entity.dart';
 import '../../domain/repositories/location_repository.dart';
@@ -16,17 +16,10 @@ class LocationRepositoryImpl implements LocationRepository {
   });
 
   @override
-  Future<Either<Failure, LocationEntity>> getCurrentLocation() async {
-    try {
-      final model = await local.getCurrentLocation();
-      return Right(model);
-    } on LocationPermissionException catch (e) {
-      return Left(LocationPermissionFailure(message: e.message));
-    } on LocationServiceDisabledException catch (e) {
-      return Left(LocationServiceDisabledFailure(message: e.message));
-    } catch (e) {
-      return Left(UnknownFailure(message: e.toString()));
-    }
+  Future<Either<Failure, LocationEntity>> getCurrentLocation() {
+    return guard(() async {
+      return await local.getCurrentLocation();
+    });
   }
 
   @override

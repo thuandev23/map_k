@@ -27,6 +27,20 @@ sealed class Either<L, R> {
       Right(value: final r) => onRight(r),
     };
   }
+
+  Either<L, T> map<T>(T Function(R right) transform) {
+    return switch (this) {
+      Left(value: final l) => Left(l),
+      Right(value: final r) => Right(transform(r)),
+    };
+  }
+
+  Either<L, T> flatMap<T>(Either<L, T> Function(R right) transform) {
+    return switch (this) {
+      Left(value: final l) => Left(l),
+      Right(value: final r) => transform(r),
+    };
+  }
 }
 
 final class Left<L, R> extends Either<L, R> {
